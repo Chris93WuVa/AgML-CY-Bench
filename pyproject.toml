@@ -32,6 +32,8 @@ torch = "^2.2.2"
 urllib3 = "^2.3.0"
 sphinx = "7.4.7"
 fastcore = "1.7.29"
+xgboost = ">=2.1.4"
+
 
 
 [build-system]
