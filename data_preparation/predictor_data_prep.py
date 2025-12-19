@@ -30,8 +30,8 @@ log = logging.getLogger(__name__)
 # Directory paths
 ##################
 
-DATA_DIR = r"/path_to_raw_data/predictors"
-OUTPUT_DIR = r"/path_to_raw_data/python-output"
+DATA_DIR = r"D:\\_Daten\\CYBENCH"
+OUTPUT_DIR = r"D:\\_Daten\\CYBENCH"
 
 #####################
 # Start and end years
@@ -143,6 +143,26 @@ ALL_INDICATORS = {
         "is_time_series": False,
         "aggr": "mean",
     },
+    "rainfed_temperate_cereals_yield": {
+        "source": "LPJmL",
+        "is_time_series": True,
+        "aggr": "mean",
+    },
+    "rainfed_maize_yield": {
+        "source": "LPJmL",
+        "is_time_series": True,
+        "aggr": "mean",
+    },
+    "irrigated_temperate_cereals_yield": {
+        "source": "LPJmL",
+        "is_time_series": True,
+        "aggr": "mean",
+    },
+    "irrigated_maize_yield": {
+        "source": "LPJmL",
+        "is_time_series": True,
+        "aggr": "mean",
+    },
 }
 
 CYCLIC_PERIODS = {
@@ -159,6 +179,13 @@ AGERA5_VARIABLES = {
     "rad": "Solar_Radiation_Flux",
     "et0": "ReferenceET_PenmanMonteith_FAO56",
     "vpd": "Vapour_Pressure_Deficit_at_Maximum_Temperature",
+}
+
+LPJML_VARIABLES = {
+    "rainfed_temperate_cereals_yield": "harvestc",
+    "rainfed_maize_yield": "harvestc",
+    "irrigated_temperate_cereals_yield": "harvestc",
+    "irrigated_maize_yield": "harvestc",
 }
 
 
@@ -846,6 +873,10 @@ def process_file(
     :param aggr: aggregation mode
     :return a dataframe with data from given raster file aggregated to admin units
     """
+    # DEBUG C.J. for testing without multiprocessing
+    #indicator_file = files[0]
+    #indicator_name = indicator
+    
     if crop == "maize":
         crop_mask_file = "crop_mask_maize_WC.tif"
     elif crop == "wheat":
@@ -857,10 +888,15 @@ def process_file(
 
     basename = os.path.basename(indicator_file)
     fname, ext = os.path.splitext(basename)
-    if ext == ".nc" and indicator_name in AGERA5_VARIABLES:
-        indicator_file = "netcdf:{indicator_file}:{variable}".format(
-            indicator_file=indicator_file, variable=AGERA5_VARIABLES[indicator_name]
-        )
+    if ext == ".nc":
+        if indicator_name in AGERA5_VARIABLES:
+            indicator_file = "netcdf:{indicator_file}:{variable}".format(
+                indicator_file=indicator_file, variable=AGERA5_VARIABLES[indicator_name]
+            )
+        elif indicator_name in LPJML_VARIABLES:
+            indicator_file = "netcdf:{indicator_file}:{variable}".format(
+                indicator_file=indicator_file, variable=LPJML_VARIABLES[indicator_name]
+            )
     if is_time_series:
         date_str = fname[-8:]
         col_names = ["crop_name", "adm_id", "date", indicator_name]
@@ -873,6 +909,7 @@ def process_file(
     ############################################
     df = pd.DataFrame(columns=col_names)
     for adm_id, geometry in geometries.items():
+        # adm_id, geometry = geometries.items()
         stats = geom_extract(
             geometry,
             indicator_file,
@@ -883,6 +920,7 @@ def process_file(
             thresh_type="Fixed",
         )
         if (stats is not None) and ("stats" in stats) and (aggr in stats["stats"]):
+            #print("Add new data to df.")
             aggr_val = stats["stats"][aggr]
             if is_time_series:
                 data_row = [crop, adm_id, date_str, aggr_val]
@@ -891,6 +929,7 @@ def process_file(
             df.loc[len(df.index)] = data_row
 
     return df
+
 
 def get_time_series_files(data_path, year=2000):
     """
@@ -973,6 +1012,16 @@ def process_indicators(crop, region, sel_indicators):
                             repeat(aggr),
                         ),
                     )
+                    
+                    # dfs = process_file(
+                    #     files[0],
+                    #     crop,
+                    #     indicator,
+                    #     geometries,
+                    #     is_time_series,
+                    #     aggr,
+                    #     )
+                    
                     result_yr = pd.concat(dfs, axis=0)
                     result_final = pd.concat([result_final, result_yr], axis=0)
             result_final = result_final.round(3)
@@ -987,7 +1036,8 @@ def process_indicators(crop, region, sel_indicators):
 
         # Static data
         else:
-            indicator_dir = os.path.join(DATA_DIR, pred_source)
+            #indicator_dir = os.path.join(DATA_DIR, pred_source)
+            indicator_dir = os.path.join(DATA_DIR, pred_source, indicator)
             print(f"Start working on {crop} {region} {indicator} {indicator_dir}")
             files = os.listdir(indicator_dir)
 
@@ -1031,7 +1081,7 @@ if __name__ == "__main__":
     if args.crop is not None:
         sel_crops = [args.crop]
     else:
-        sel_crops = CROPS
+        sel_crops = CROPS # ['wheat']
 
     sel_regions = None
     if args.region is not None:
@@ -1041,6 +1091,8 @@ if __name__ == "__main__":
         sel_indicators = args.indicator
     else:
         sel_indicators = list(ALL_INDICATORS.keys())
+        # DEBUG: Choose indicator manually
+        sel_indicators = ['lpjml_yield'] #'fpar'
 
     for crop in sel_crops:
         if sel_regions is None:
@@ -1054,6 +1106,12 @@ if __name__ == "__main__":
                 if os.path.isdir(os.path.join(crop_dir, cc))
             ]
         for cn in sel_regions:
+            #crop = 'wheat'
+            #region = 'DE'
+            #indicator = 'rainfed_temperate_cereals_yield'
+            #sel_indicators = indicator
+            #yr = 2001
             print("Working on", crop, cn)
             process_indicators(crop, cn, sel_indicators)
+            process_indicators('wheat', 'DE', 'rainfed_temperate_cereals_yield')
         sel_regions = args.region
