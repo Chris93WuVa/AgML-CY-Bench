@@ -30,8 +30,8 @@ log = logging.getLogger(__name__)
 # Directory paths
 ##################
 
-DATA_DIR = r"D:\\_Daten\\CYBENCH"
-OUTPUT_DIR = r"D:\\_Daten\\CYBENCH"
+DATA_DIR = r"RAW_DATA/"
+OUTPUT_DIR = r"RAW_DATA/"
 
 #####################
 # Start and end years
@@ -1013,15 +1013,6 @@ def process_indicators(crop, region, sel_indicators):
                         ),
                     )
                     
-                    # dfs = process_file(
-                    #     files[0],
-                    #     crop,
-                    #     indicator,
-                    #     geometries,
-                    #     is_time_series,
-                    #     aggr,
-                    #     )
-                    
                     result_yr = pd.concat(dfs, axis=0)
                     result_final = pd.concat([result_final, result_yr], axis=0)
             result_final = result_final.round(3)
@@ -1036,8 +1027,7 @@ def process_indicators(crop, region, sel_indicators):
 
         # Static data
         else:
-            #indicator_dir = os.path.join(DATA_DIR, pred_source)
-            indicator_dir = os.path.join(DATA_DIR, pred_source, indicator)
+            indicator_dir = os.path.join(DATA_DIR, pred_source)
             print(f"Start working on {crop} {region} {indicator} {indicator_dir}")
             files = os.listdir(indicator_dir)
 
@@ -1081,7 +1071,7 @@ if __name__ == "__main__":
     if args.crop is not None:
         sel_crops = [args.crop]
     else:
-        sel_crops = CROPS # ['wheat']
+        sel_crops = CROPS
 
     sel_regions = None
     if args.region is not None:
@@ -1091,8 +1081,6 @@ if __name__ == "__main__":
         sel_indicators = args.indicator
     else:
         sel_indicators = list(ALL_INDICATORS.keys())
-        # DEBUG: Choose indicator manually
-        sel_indicators = ['lpjml_yield'] #'fpar'
 
     for crop in sel_crops:
         if sel_regions is None:
@@ -1106,12 +1094,6 @@ if __name__ == "__main__":
                 if os.path.isdir(os.path.join(crop_dir, cc))
             ]
         for cn in sel_regions:
-            #crop = 'wheat'
-            #region = 'DE'
-            #indicator = 'rainfed_temperate_cereals_yield'
-            #sel_indicators = indicator
-            #yr = 2001
             print("Working on", crop, cn)
             process_indicators(crop, cn, sel_indicators)
-            process_indicators('wheat', 'DE', 'rainfed_temperate_cereals_yield')
         sel_regions = args.region
