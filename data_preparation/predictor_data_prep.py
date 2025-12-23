@@ -873,9 +873,6 @@ def process_file(
     :param aggr: aggregation mode
     :return a dataframe with data from given raster file aggregated to admin units
     """
-    # DEBUG C.J. for testing without multiprocessing
-    #indicator_file = files[0]
-    #indicator_name = indicator
     
     if crop == "maize":
         crop_mask_file = "crop_mask_maize_WC.tif"
@@ -909,7 +906,6 @@ def process_file(
     ############################################
     df = pd.DataFrame(columns=col_names)
     for adm_id, geometry in geometries.items():
-        # adm_id, geometry = geometries.items()
         stats = geom_extract(
             geometry,
             indicator_file,
@@ -920,7 +916,6 @@ def process_file(
             thresh_type="Fixed",
         )
         if (stats is not None) and ("stats" in stats) and (aggr in stats["stats"]):
-            #print("Add new data to df.")
             aggr_val = stats["stats"][aggr]
             if is_time_series:
                 data_row = [crop, adm_id, date_str, aggr_val]
